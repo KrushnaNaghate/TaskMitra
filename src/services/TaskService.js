@@ -1,116 +1,146 @@
 import NetInfo from '@react-native-community/netinfo';
-import {getDatabase} from '@react-native-firebase/database';
+import {getDatabase, onValue, ref, set} from '@react-native-firebase/database';
 import Realm from 'realm';
 
 const database = getDatabase();
+const retryQueue = [];
 
-// Fetch tasks from Firebase and sync with Realm
 export const fetchTasksFromFirebase = realm => {
-  if (realm) {
-    const tasksRef = database.ref('tasks');
-    tasksRef.on('value', snapshot => {
-      const tasks = snapshot.val();
-      if (tasks) {
-        try {
-          realm.write(() => {
-            Object.values(tasks).forEach(task => {
+  const tasksRef = ref(database, 'tasks');
+  onValue(tasksRef, snapshot => {
+    const tasks = snapshot.val();
+    if (tasks) {
+      try {
+        realm.write(() => {
+          Object.values(tasks).forEach(task => {
+            try {
               realm.create(
                 'Task',
                 {
-                  _id: task._id,
-                  title: task.title,
-                  description: task.description,
-                  status: task.status,
-                  assignedTo: task.assignedTo,
-                  updatedAt: new Date(task.updatedAt),
+                  _id: String(task._id),
+                  title: task.title || '',
+                  description: task.description || '',
+                  status: task.status || 'Pending',
+                  assignedTo: task.assignedTo || '',
+                  priority: task.priority || 'Medium',
+                  createdAt: new Date(task.createdAt || Date.now()),
+                  updatedAt: new Date(task.updatedAt || Date.now()),
                   isSynced: true,
                 },
                 Realm.UpdateMode.Modified,
               );
-            });
+            } catch (err) {
+              console.warn('🔥 Skipped bad task:', task._id, err.message);
+            }
           });
-        } catch (error) {
-          console.error('Error syncing Firebase tasks to Realm:', error);
-        }
+        });
+      } catch (err) {
+        console.error('🔥 Firebase → Realm sync failed:', err);
       }
-    });
-  }
+    }
+  });
 };
 
-// ADD or UPDATE task depending on online/offline status
-export const saveTask = async (task, realm, isUpdate = false) => {
+export const saveTask = async (task, realm, isUpdate = false, showToast) => {
   const netInfo = await NetInfo.fetch();
   const isConnected = netInfo.isConnected;
+  const timestamp = new Date();
 
-  if (isConnected) {
-    const tasksRef = database.ref('tasks');
-    const firebaseRef = isUpdate
-      ? tasksRef.orderByChild('_id').equalTo(task._id)
-      : tasksRef.push();
+  const taskToSave = {
+    ...task,
+    _id: String(task._id),
+    createdAt: task.createdAt || timestamp,
+    updatedAt: timestamp,
+  };
 
-    if (isUpdate) {
-      // Fetch matching task node and update it
-      firebaseRef.once('value', snapshot => {
-        const updates = {};
-        snapshot.forEach(child => {
-          updates[child.key] = {
-            ...task,
-            updatedAt: new Date().toISOString(),
-          };
-        });
-
-        tasksRef.update(updates);
-      });
-    } else {
-      firebaseRef.set({
-        ...task,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-  }
-
-  // Store in Realm either way
   realm.write(() => {
     realm.create(
       'Task',
       {
-        _id: task._id,
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        assignedTo: task.assignedTo,
-        updatedAt: new Date(),
-        isSynced: isConnected, // false if offline
+        ...taskToSave,
+        isSynced: isConnected,
       },
       Realm.UpdateMode.Modified,
     );
   });
+
+  if (isConnected) {
+    try {
+      const dbRef = ref(database, `tasks/${task._id}`);
+      await set(dbRef, {
+        ...taskToSave,
+        updatedAt: taskToSave.updatedAt.toISOString(),
+        createdAt: taskToSave.createdAt.toISOString(),
+      });
+
+      realm.write(() => {
+        const obj = realm.objectForPrimaryKey('Task', task._id);
+        if (obj) {
+          obj.isSynced = true;
+        }
+      });
+
+      showToast?.('✅ Task saved and synced');
+    } catch (err) {
+      retryQueue.push(taskToSave);
+      showToast?.('⚠️ Task queued for sync');
+    }
+  } else {
+    showToast?.('📴 Saved offline');
+  }
 };
 
-// Sync unsynced tasks once online
-export const syncUnsyncedTasks = async realm => {
+export const syncUnsyncedTasks = async (realm, showToast) => {
   const netInfo = await NetInfo.fetch();
   if (!netInfo.isConnected) {
+    showToast?.('🚫 You are offline');
     return;
   }
 
-  const unsyncedTasks = realm.objects('Task').filtered('isSynced == false');
+  const unsynced = realm.objects('Task').filtered('isSynced == false');
+  if (unsynced.length === 0 && retryQueue.length === 0) {
+    showToast?.('🎉 All tasks are already synced');
+    return;
+  }
 
-  unsyncedTasks.forEach(task => {
-    const tasksRef = database.ref('tasks');
-    const firebaseRef = tasksRef.push();
+  for (const task of unsynced) {
+    const dbRef = ref(database, `tasks/${task._id}`);
+    try {
+      await set(dbRef, {
+        ...task,
+        updatedAt: task.updatedAt.toISOString(),
+        createdAt: task.createdAt.toISOString(),
+      });
 
-    firebaseRef.set({
-      _id: task._id,
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      assignedTo: task.assignedTo,
-      updatedAt: new Date().toISOString(),
-    });
+      realm.write(() => {
+        task.isSynced = true;
+      });
+    } catch (err) {
+      retryQueue.push(task);
+    }
+  }
 
-    realm.write(() => {
-      task.isSynced = true;
-    });
-  });
+  while (retryQueue.length > 0) {
+    const retryTask = retryQueue.shift();
+    const dbRef = ref(database, `tasks/${retryTask._id}`);
+    try {
+      await set(dbRef, {
+        ...retryTask,
+        updatedAt: retryTask.updatedAt.toISOString(),
+        createdAt: retryTask.createdAt.toISOString(),
+      });
+
+      realm.write(() => {
+        const stored = realm.objectForPrimaryKey('Task', retryTask._id);
+        if (stored) {
+          stored.isSynced = true;
+        }
+      });
+    } catch (err) {
+      retryQueue.push(retryTask);
+      console.warn('🔁 Retry failed again:', retryTask._id);
+    }
+  }
+
+  showToast?.('✅ Synced all pending tasks');
 };

@@ -1,5 +1,5 @@
 import {yupResolver} from '@hookform/resolvers/yup';
-import {get, getDatabase, ref, set} from '@react-native-firebase/database';
+import {get, getDatabase, ref} from '@react-native-firebase/database';
 import {useRealm} from '@realm/react';
 import React, {useEffect, useState} from 'react';
 import {Controller, useForm} from 'react-hook-form';
@@ -13,10 +13,12 @@ import {
   Text,
   TextInput,
 } from 'react-native-paper';
-import Realm from 'realm';
 import * as yup from 'yup';
+
+import {useSnackbar} from '../components/SnackbarProvider';
 import {useTheme} from '../context/ThemeContext';
 import useNetworkStatus from '../hooks/useNetworkStatus';
+import {saveTask} from '../services/TaskService';
 
 const schema = yup.object({
   title: yup.string().required('Title is required'),
@@ -25,9 +27,10 @@ const schema = yup.object({
 });
 
 const CreateTaskScreen = ({navigation, route}) => {
-  const {taskId} = route.params || {}; // Check if editing
+  const {taskId} = route.params || {};
   const realm = useRealm();
   const isConnected = useNetworkStatus();
+  const {showToast} = useSnackbar();
   const {currentTheme, isDark} = useTheme();
 
   const {
@@ -56,7 +59,7 @@ const CreateTaskScreen = ({navigation, route}) => {
               populateFields(task);
             }
           } catch (err) {
-            console.error('Error fetching from Firebase:', err);
+            console.error(' Error fetching Firebase:', err);
           }
         } else {
           const task = realm.objectForPrimaryKey('Task', taskId);
@@ -66,7 +69,10 @@ const CreateTaskScreen = ({navigation, route}) => {
         }
         setLoading(false);
       };
+
       loadTask();
+    } else {
+      setLoading(false);
     }
   }, [taskId, isConnected]);
 
@@ -74,37 +80,27 @@ const CreateTaskScreen = ({navigation, route}) => {
     setValue('title', task.title);
     setValue('description', task.description);
     setValue('assignedTo', task.assignedTo);
-    setStatus(task.status);
+    setStatus(task.status || 'Pending');
     setPriority(task.priority || 'Medium');
   };
 
   const onSubmit = data => {
+    const timestamp = new Date();
+
     const task = {
-      _id: taskId || `${new Date().getTime()}`,
+      _id: taskId || `${Date.now()}`,
       title: data.title,
       description: data.description,
       assignedTo: data.assignedTo,
       status,
       priority,
-      updatedAt: new Date(),
+      createdAt: taskId
+        ? realm.objectForPrimaryKey('Task', taskId)?.createdAt || timestamp
+        : timestamp,
+      updatedAt: timestamp,
     };
 
-    if (isConnected) {
-      const dbRef = ref(getDatabase(), `tasks/${task._id}`);
-      set(dbRef, {...task, updatedAt: task.updatedAt.toISOString()});
-    }
-
-    realm.write(() => {
-      realm.create(
-        'Task',
-        {
-          ...task,
-          isSynced: isConnected,
-        },
-        Realm.UpdateMode.Modified,
-      );
-    });
-
+    saveTask(task, realm, !!taskId, showToast);
     navigation.goBack();
   };
 
@@ -121,17 +117,13 @@ const CreateTaskScreen = ({navigation, route}) => {
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        isDark ? styles.darkContainer : styles.lightContainer,
-      ]}>
+    <View style={[styles.container, isDark ? styles.dark : styles.light]}>
       <Controller
         name="title"
         control={control}
         render={({field: {onChange, value}}) => (
           <TextInput
-            label="Task Title"
+            label="Title"
             value={value}
             onChangeText={onChange}
             mode="outlined"
@@ -140,16 +132,14 @@ const CreateTaskScreen = ({navigation, route}) => {
           />
         )}
       />
-      {errors.title && (
-        <Text style={styles.errorText}>{errors.title.message}</Text>
-      )}
+      {errors.title && <Text style={styles.error}>{errors.title.message}</Text>}
 
       <Controller
         name="description"
         control={control}
         render={({field: {onChange, value}}) => (
           <TextInput
-            label="Task Description"
+            label="Description"
             value={value}
             onChangeText={onChange}
             mode="outlined"
@@ -159,7 +149,7 @@ const CreateTaskScreen = ({navigation, route}) => {
         )}
       />
       {errors.description && (
-        <Text style={styles.errorText}>{errors.description.message}</Text>
+        <Text style={styles.error}>{errors.description.message}</Text>
       )}
 
       <Controller
@@ -177,7 +167,7 @@ const CreateTaskScreen = ({navigation, route}) => {
         )}
       />
       {errors.assignedTo && (
-        <Text style={styles.errorText}>{errors.assignedTo.message}</Text>
+        <Text style={styles.error}>{errors.assignedTo.message}</Text>
       )}
 
       <Text style={[styles.label, {color: currentTheme.textColor}]}>
@@ -200,27 +190,9 @@ const CreateTaskScreen = ({navigation, route}) => {
             {priority} Priority
           </Button>
         }>
-        <Menu.Item
-          onPress={() => {
-            setPriority('High');
-            setVisible(false);
-          }}
-          title="High"
-        />
-        <Menu.Item
-          onPress={() => {
-            setPriority('Medium');
-            setVisible(false);
-          }}
-          title="Medium"
-        />
-        <Menu.Item
-          onPress={() => {
-            setPriority('Low');
-            setVisible(false);
-          }}
-          title="Low"
-        />
+        <Menu.Item onPress={() => setPriority('High')} title="High" />
+        <Menu.Item onPress={() => setPriority('Medium')} title="Medium" />
+        <Menu.Item onPress={() => setPriority('Low')} title="Low" />
         <Divider />
       </Menu>
 
@@ -236,12 +208,12 @@ const CreateTaskScreen = ({navigation, route}) => {
 
 const styles = StyleSheet.create({
   container: {flex: 1, padding: 20},
-  input: {marginBottom: 15},
+  input: {marginBottom: 12},
   button: {marginTop: 20},
-  errorText: {color: 'red', fontSize: 12, marginBottom: 10},
-  lightContainer: {backgroundColor: '#fff'},
-  darkContainer: {backgroundColor: '#333'},
-  label: {fontSize: 14, marginBottom: 5, fontWeight: 'bold'},
+  label: {fontSize: 14, fontWeight: 'bold', marginTop: 10},
+  error: {color: 'red', fontSize: 12, marginBottom: 8},
+  dark: {backgroundColor: '#121212'},
+  light: {backgroundColor: '#fff'},
 });
 
 export default CreateTaskScreen;

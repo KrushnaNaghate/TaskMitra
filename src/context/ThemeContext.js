@@ -35,6 +35,7 @@ export const ThemeProvider = ({children}) => {
 
   return (
     <ThemeContext.Provider value={{currentTheme, toggleTheme, isDark}}>
+      {/* <StatusBar barStyle={isDark ? 'dark-content' : 'light-content'} /> */}
       <PaperProvider>{children}</PaperProvider>
     </ThemeContext.Provider>
   );

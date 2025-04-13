@@ -1,4 +1,3 @@
-// ✅ Correct schema definition
 export const TaskSchema = {
   name: 'Task',
   primaryKey: '_id',
@@ -6,12 +5,13 @@ export const TaskSchema = {
     _id: 'string',
     title: 'string',
     description: 'string',
-    status: 'string',
+    status: 'string', // "Pending", "In Progress", "Done"
     assignedTo: 'string',
+    priority: 'string', // "High", "Medium", "Low"
+    createdAt: 'date',
     updatedAt: 'date',
     isSynced: {type: 'bool', default: false},
   },
 };
 
-// ✅ Optional: if you're importing it as array
 export const TaskRealm = [TaskSchema];
