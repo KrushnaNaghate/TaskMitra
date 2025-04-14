@@ -9,6 +9,9 @@ const lightTheme = {
   inputBackground: '#f2f2f2',
   inputBorderColor: '#ccc',
   errorColor: '#ff4d4d',
+
+  placeholderColor: '#888',
+  disableBackground: '#e0e0e0',
 };
 
 const darkTheme = {
@@ -18,8 +21,10 @@ const darkTheme = {
   inputBackground: '#333333',
   inputBorderColor: '#444444',
   errorColor: '#ff4d4d',
-};
 
+  placeholderColor: '#aaa',
+  disableBackground: '#1f1f1f',
+};
 // Create a context for the theme
 const ThemeContext = createContext();
 

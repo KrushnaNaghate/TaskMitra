@@ -3,27 +3,38 @@ import {get, getDatabase, ref} from '@react-native-firebase/database';
 import {useRealm} from '@realm/react';
 import React, {useEffect, useState} from 'react';
 import {Controller, useForm} from 'react-hook-form';
-import {StyleSheet, View} from 'react-native';
-import {
-  ActivityIndicator,
-  Button,
-  Divider,
-  Menu,
-  RadioButton,
-  Text,
-  TextInput,
-} from 'react-native-paper';
+import {ScrollView, StyleSheet, View} from 'react-native';
+import {ActivityIndicator, Button, Text} from 'react-native-paper';
 import * as yup from 'yup';
 
+import {responsiveFont} from 'react-native-adaptive-fontsize';
+import {moderateScale, moderateVerticalScale} from 'react-native-size-matters';
+import CustomDropdown from '../components/CustomDropdown';
+import CustomInputField from '../components/CustomInputField';
 import {useSnackbar} from '../components/SnackbarProvider';
 import {useTheme} from '../context/ThemeContext';
 import useNetworkStatus from '../hooks/useNetworkStatus';
 import {saveTask} from '../services/TaskService';
 
 const schema = yup.object({
-  title: yup.string().required('Title is required'),
-  description: yup.string().required('Description is required'),
-  assignedTo: yup.string().required('Assigned To is required'),
+  title: yup
+    .string()
+    .required('Title is required')
+    .matches(/^[A-Za-z\s]+$/, 'Title must only contain letters and spaces'), // Ensures the title has only letters and spaces
+
+  description: yup
+    .string()
+    .required('Description is required')
+    .min(10, 'Description must be at least 10 characters') // Min length validation
+    .max(200, 'Description must be less than or equal to 200 characters'), // Max length validation
+
+  assignedTo: yup
+    .string()
+    .required('Assigned To is required')
+    .matches(
+      /^[A-Za-z\s]+$/,
+      'Assigned To must only contain letters and spaces',
+    ), // Ensures the name has only letters and spaces
 });
 
 const CreateTaskScreen = ({navigation, route}) => {
@@ -42,7 +53,6 @@ const CreateTaskScreen = ({navigation, route}) => {
 
   const [status, setStatus] = useState('Pending');
   const [priority, setPriority] = useState('Medium');
-  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(!!taskId);
 
   useEffect(() => {
@@ -118,100 +128,120 @@ const CreateTaskScreen = ({navigation, route}) => {
 
   return (
     <View style={[styles.container, isDark ? styles.dark : styles.light]}>
-      <Controller
-        name="title"
-        control={control}
-        render={({field: {onChange, value}}) => (
-          <TextInput
-            label="Title"
-            value={value}
-            onChangeText={onChange}
-            mode="outlined"
-            style={styles.input}
-            theme={{colors: {primary: currentTheme.buttonColor}}}
-          />
-        )}
-      />
-      {errors.title && <Text style={styles.error}>{errors.title.message}</Text>}
+      <ScrollView>
+        {/* Custom Input for Title */}
+        <Controller
+          name="title"
+          control={control}
+          render={({field: {onChange, value}}) => (
+            <CustomInputField
+              label="Title"
+              value={value}
+              onChangeText={onChange}
+              error={errors.title}
+              errorMessage={errors.title?.message}
+              placeholder="Enter task title"
+              inputStyle={{backgroundColor: currentTheme.inputBackground}}
+            />
+          )}
+        />
 
-      <Controller
-        name="description"
-        control={control}
-        render={({field: {onChange, value}}) => (
-          <TextInput
-            label="Description"
-            value={value}
-            onChangeText={onChange}
-            mode="outlined"
-            style={styles.input}
-            theme={{colors: {primary: currentTheme.buttonColor}}}
-          />
-        )}
-      />
-      {errors.description && (
-        <Text style={styles.error}>{errors.description.message}</Text>
-      )}
+        {/* Custom Input for Description */}
+        <Controller
+          name="description"
+          control={control}
+          render={({field: {onChange, value}}) => (
+            <CustomInputField
+              label="Description"
+              value={value}
+              onChangeText={onChange}
+              error={errors.description}
+              errorMessage={errors.description?.message}
+              placeholder="Enter task description"
+              inputStyle={{backgroundColor: currentTheme.inputBackground}}
+              multiline={value?.length > 34}
+              numberOfLines={value?.length > 34 ? 4 : 1}
+            />
+          )}
+        />
 
-      <Controller
-        name="assignedTo"
-        control={control}
-        render={({field: {onChange, value}}) => (
-          <TextInput
-            label="Assigned To"
-            value={value}
-            onChangeText={onChange}
-            mode="outlined"
-            style={styles.input}
-            theme={{colors: {primary: currentTheme.buttonColor}}}
-          />
-        )}
-      />
-      {errors.assignedTo && (
-        <Text style={styles.error}>{errors.assignedTo.message}</Text>
-      )}
+        {/* Custom Input for Assigned To */}
+        <Controller
+          name="assignedTo"
+          control={control}
+          render={({field: {onChange, value}}) => (
+            <CustomInputField
+              label="Assigned To"
+              value={value}
+              onChangeText={onChange}
+              error={errors.assignedTo}
+              errorMessage={errors.assignedTo?.message}
+              placeholder="Assign task to someone"
+              inputStyle={{backgroundColor: currentTheme.inputBackground}}
+            />
+          )}
+        />
 
-      <Text style={[styles.label, {color: currentTheme.textColor}]}>
-        Status
-      </Text>
-      <RadioButton.Group onValueChange={setStatus} value={status}>
-        <RadioButton.Item label="Pending" value="Pending" />
-        <RadioButton.Item label="In Progress" value="In Progress" />
-        <RadioButton.Item label="Done" value="Done" />
-      </RadioButton.Group>
+        {/* Custom Dropdown for Status */}
+        <Text style={[styles.label, {color: currentTheme.textColor}]}>
+          Status
+        </Text>
+        <CustomDropdown
+          data={[
+            {value: 'Pending', label: 'Pending'},
+            {value: 'In Progress', label: 'In Progress'},
+            {value: 'Done', label: 'Done'},
+          ]}
+          placeholder="Select Status"
+          value={status}
+          onSelect={setStatus}
+          error={errors.status}
+          errorMessage={errors.status?.message}
+        />
 
-      <Text style={[styles.label, {color: currentTheme.textColor}]}>
-        Priority
-      </Text>
-      <Menu
-        visible={visible}
-        onDismiss={() => setVisible(false)}
-        anchor={
-          <Button mode="outlined" onPress={() => setVisible(true)}>
-            {priority} Priority
-          </Button>
-        }>
-        <Menu.Item onPress={() => setPriority('High')} title="High" />
-        <Menu.Item onPress={() => setPriority('Medium')} title="Medium" />
-        <Menu.Item onPress={() => setPriority('Low')} title="Low" />
-        <Divider />
-      </Menu>
+        {/* Custom Dropdown for Priority */}
+        <Text style={[styles.label, {color: currentTheme.textColor}]}>
+          Priority
+        </Text>
+        <CustomDropdown
+          data={[
+            {value: 'High', label: 'High'},
+            {value: 'Medium', label: 'Medium'},
+            {value: 'Low', label: 'Low'},
+          ]}
+          placeholder="Select Priority"
+          value={priority}
+          onSelect={setPriority}
+          error={errors.priority}
+          errorMessage={errors.priority?.message}
+        />
 
-      <Button
-        mode="contained"
-        onPress={handleSubmit(onSubmit)}
-        style={[styles.button, {backgroundColor: currentTheme.buttonColor}]}>
-        {taskId ? 'Update Task' : 'Add Task'}
-      </Button>
+        {/* Submit Button */}
+        <Button
+          mode="contained"
+          onPress={handleSubmit(onSubmit)}
+          style={[styles.button, {backgroundColor: currentTheme.buttonColor}]}>
+          {taskId ? 'Update Task' : 'Add Task'}
+        </Button>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, padding: 20},
-  input: {marginBottom: 12},
-  button: {marginTop: 20},
-  label: {fontSize: 14, fontWeight: 'bold', marginTop: 10},
-  error: {color: 'red', fontSize: 12, marginBottom: 8},
+  container: {flex: 1, padding: moderateScale(20)},
+  input: {marginBottom: moderateVerticalScale(12)},
+  button: {marginTop: moderateVerticalScale(20)},
+  label: {
+    fontSize: responsiveFont(14),
+    fontWeight: 'bold',
+    marginTop: moderateVerticalScale(10),
+  },
+  error: {
+    color: 'red',
+    fontSize: responsiveFont(12),
+    marginBottom: moderateVerticalScale(8),
+  },
   dark: {backgroundColor: '#121212'},
   light: {backgroundColor: '#fff'},
 });
