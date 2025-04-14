@@ -6,11 +6,15 @@ import Feather from 'react-native-vector-icons/Feather';
 import {useTheme} from '../context/ThemeContext';
 import useNetworkStatus from '../hooks/useNetworkStatus';
 
-function OfflineRibbon({style}) {
-  const {currentTheme, isDark, toggleTheme} = useTheme();
+interface OfflineRibbonProps {
+  style?: object;
+}
+
+const OfflineRibbon: React.FC<OfflineRibbonProps> = ({style}) => {
+  const {currentTheme} = useTheme();
   const translateY = useRef(new Animated.Value(-50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
-  const animationRef = useRef(null);
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const currentnet = useNetworkStatus(); // Checks the network status (online or offline)
 
   // Trigger the animation for the ribbon
@@ -44,7 +48,7 @@ function OfflineRibbon({style}) {
     animationRef.current.start();
 
     return () => {
-      animationRef.current.stop();
+      animationRef.current?.stop();
       translateY.setValue(-50); // Reset position after the animation is done
     };
   }, []);
@@ -69,7 +73,7 @@ function OfflineRibbon({style}) {
       ) : null}
     </>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {

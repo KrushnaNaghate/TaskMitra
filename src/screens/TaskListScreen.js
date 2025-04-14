@@ -1,9 +1,9 @@
-import {useQuery, useRealm} from '@realm/react';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {FlatList, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {Button, Card, Chip, Switch, Text} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
+import {useQuery, useRealm} from '@realm/react';
 import {responsiveFont} from 'react-native-adaptive-fontsize';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {moderateScale, moderateVerticalScale} from 'react-native-size-matters';
@@ -23,7 +23,7 @@ const TaskListScreen = ({navigation}) => {
   const {currentTheme, isDark, toggleTheme} = useTheme();
   const {showToast} = useSnackbar();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (realm) {
       fetchTasksFromFirebase(realm);
     }
@@ -32,13 +32,13 @@ const TaskListScreen = ({navigation}) => {
   const getPriorityIcon = priority => {
     switch (priority) {
       case 'High':
-        return {icon: 'keyboard-double-arrow-up', color: 'red'}; // Red for high priority
+        return {icon: 'keyboard-double-arrow-up', color: 'red'};
       case 'Medium':
-        return {icon: 'linear-scale', color: '#FFA500'}; // Green for medium priority
+        return {icon: 'linear-scale', color: '#FFA500'};
       case 'Low':
-        return {icon: 'keyboard-double-arrow-down', color: 'blue'}; // Blue for low priority
+        return {icon: 'keyboard-double-arrow-down', color: 'blue'};
       default:
-        return {icon: 'more-horiz', color: 'gray'}; // Default color if none match
+        return {icon: 'more-horiz', color: 'gray'};
     }
   };
 
@@ -56,9 +56,6 @@ const TaskListScreen = ({navigation}) => {
         titleStyle={{color: currentTheme.textColor, fontWeight: 'bold'}}
         subtitle={`Assigned: ${item.assignedTo}`}
         subtitleStyle={{color: currentTheme.textColor, fontWeight: '600'}}
-        // right={() => (
-
-        // )}
       />
       <Card.Content>
         <Text style={{color: currentTheme.textColor, fontWeight: '400'}}>
@@ -71,7 +68,7 @@ const TaskListScreen = ({navigation}) => {
           <Icon
             name={getPriorityIcon(item.priority).icon}
             size={22}
-            color={getPriorityIcon(item.priority).color} // Use the color from getPriorityIcon
+            color={getPriorityIcon(item.priority).color}
             style={{marginRight: 8}}
           />
           <Icon
@@ -145,23 +142,6 @@ const TaskListScreen = ({navigation}) => {
           style={[styles.button, {backgroundColor: currentTheme.buttonColor}]}>
           Add Task
         </Button>
-
-        {/* <View style={styles.toggleRow}>
-          <Text style={{color: currentTheme.textColor}}>Dark Mode</Text>
-          <Switch
-            value={isDark}
-            onValueChange={toggleTheme}
-            trackColor={{true: currentTheme.buttonColor, false: '#ccc'}}
-          />
-          <Text style={{color: currentTheme.textColor, marginLeft: 16}}>
-            Fake Offline
-          </Text>
-          <Switch
-            value={!isConnected}
-            onValueChange={toggleFakeOffline}
-            trackColor={{true: 'orange', false: '#ccc'}}
-          />
-        </View> */}
       </View>
     </SafeAreaView>
   );
@@ -197,7 +177,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   syncButton: {
-    padding: moderateScale(6), // touch area
+    padding: moderateScale(6),
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',

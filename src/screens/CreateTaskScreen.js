@@ -49,7 +49,7 @@ const CreateTaskScreen = ({navigation, route}) => {
     handleSubmit,
     setValue,
     formState: {errors},
-  } = useForm({resolver: yupResolver(schema)});
+  } = useForm({resolver: yupResolver(schema), mode: 'all'});
 
   const [status, setStatus] = useState('Pending');
   const [priority, setPriority] = useState('Medium');

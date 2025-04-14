@@ -5,7 +5,20 @@ import {Dropdown} from 'react-native-element-dropdown';
 import {moderateScale, moderateVerticalScale} from 'react-native-size-matters';
 import {useTheme} from '../context/ThemeContext';
 
-function CustomDropdown({
+interface CustomDropdownProps {
+  data: {label: string; value: string}[];
+  placeholder?: string;
+  value?: string | null;
+  onSelect: (value: string | null) => void;
+  onBlur?: () => void;
+  error?: boolean;
+  errorMessage?: string;
+  label?: string;
+  isrequired?: boolean;
+  [rest: string]: any; // Allow additional props (for Dropdown props like labelField, valueField, etc.)
+}
+
+const CustomDropdown: React.FC<CustomDropdownProps> = ({
   data = [],
   placeholder = 'Select',
   value = null,
@@ -16,8 +29,8 @@ function CustomDropdown({
   label,
   isrequired,
   ...rest
-}) {
-  const [selectedValue, setSelectedValue] = useState(value);
+}) => {
+  const [selectedValue, setSelectedValue] = useState<string | null>(value);
   const {currentTheme} = useTheme();
 
   useEffect(() => {
@@ -71,7 +84,7 @@ function CustomDropdown({
       )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {

@@ -1,11 +1,30 @@
 import React, {forwardRef} from 'react';
-import {StyleSheet, Text, TextInput, View} from 'react-native';
+import {StyleSheet, Text, TextInput, TextInputProps, View} from 'react-native';
 import {responsiveFont} from 'react-native-adaptive-fontsize';
 import {moderateScale, moderateVerticalScale} from 'react-native-size-matters';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import {useTheme} from '../context/ThemeContext';
 
-const CustomInputField = forwardRef(
+interface CustomInputFieldProps extends TextInputProps {
+  label?: string;
+  placeholder?: string;
+  containerStyle?: object;
+  inputStyle?: object;
+  onBlur?: () => void;
+  onClick?: () => void;
+  error?: boolean;
+  errorMessage?: string;
+  disableInput?: boolean;
+  hint?: string;
+  extra?: JSX.Element;
+  preError?: boolean;
+  preErrorColor?: string;
+  PreErrorText?: string;
+  isrequired?: boolean;
+  secureTextEntryIcon?: boolean;
+}
+
+const CustomInputField = forwardRef<TextInput, CustomInputFieldProps>(
   (
     {
       label,
@@ -17,7 +36,7 @@ const CustomInputField = forwardRef(
       error,
       errorMessage,
       disableInput = true,
-      hint = false,
+      hint = '',
       extra,
       preError,
       preErrorColor,
@@ -59,7 +78,7 @@ const CustomInputField = forwardRef(
             },
           ]}>
           <TextInput
-            ref={ref || null}
+            ref={ref}
             style={[styles.input, inputStyle, {color: currentTheme.textColor}]}
             placeholder={placeholder}
             placeholderTextColor={currentTheme.placeholderColor}
@@ -72,7 +91,6 @@ const CustomInputField = forwardRef(
             editable={disableInput}
             onBlur={onBlur}
             {...rest}
-            numberOfLines={4}
           />
         </View>
 

@@ -14,9 +14,11 @@ import {TaskRealm} from './src/realm/TaskSchema';
 import CreateTaskScreen from './src/screens/CreateTaskScreen';
 import TaskListScreen from './src/screens/TaskListScreen';
 
+// Types
+
 const Stack = createStackNavigator();
 
-const App = () => {
+const App: React.FC = () => {
   return (
     <ThemeProvider>
       <RealmProvider schema={TaskRealm} deleteRealmIfMigrationNeeded>
