@@ -48,6 +48,13 @@ const TaskListScreen = ({navigation}) => {
     syncUnsyncedTasks(realm, showToast);
   };
 
+  useEffect(() => {
+    if (isConnected) {
+      showToast('🔄 Syncing changes to Firebase...');
+      syncUnsyncedTasks(realm, showToast);
+    }
+  }, [isConnected]);
+
   const renderTask = ({item}) => (
     <Card
       style={[styles.card, {backgroundColor: currentTheme.inputBackground}]}>

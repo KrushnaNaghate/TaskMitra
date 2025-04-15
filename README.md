@@ -1,27 +1,38 @@
-# 🧠 Task Collaboration App (React Native)
+# TaskMitra 📋
 
-A full offline-first task collaboration app built in React Native, using Realm for local storage and Firebase Realtime Database for real-time sync.
+TaskMitra is a modern task collaboration app built with React Native. It supports offline-first functionality with Realm DB and real-time Firebase sync for multi-user task management.
 
-## ✨ Features
+---
 
-- Offline-first task management (create, update, delete tasks without internet)
-- Real-time sync using Firebase Realtime DB
-- Sync conflict handling with timestamps
-- React Hook Form + Yup for validation
-- Dark/Light mode with Context API
-- Sync status indicators, task priority UI, and retry queue
-- Manual "Sync Now" button
-- Dev toggle for simulating offline
-- Toast/snackbar system for feedback
+## 🔧 Features
 
-## 🔧 Tech Stack
+- ✅ Offline-first with Realm
+- 🔄 Real-time sync using Firebase Realtime DB
+- 👥 Multi-user collaboration
+- ✍️ Create/Edit task with form validation (React Hook Form + Yup)
+- 🌐 Auto-sync when network reconnects
+- 🎨 Light/Dark mode (Context API)
+- 🔢 Adaptive font scaling
+- 🖼️ Custom task cards, sync status, and priority icons
 
-- React Native (0.72.3)
-- Realm DB
-- Firebase Realtime Database
-- React Native Paper (UI)
-- React Navigation
-- React Hook Form + Yup
-- NetInfo
+---
 
-## 📂 Folder Structure
+## 📲 Tech Stack
+
+- **React Native CLI**
+- **Realm** for offline storage
+- **Firebase Realtime DB** for sync
+- **React Hook Form + Yup** for validation
+- **Context API** for theming
+- **Adaptive Fontsize + Vector Icons**
+
+---
+
+## 🚀 Setup Instructions
+
+```bash
+git clone https://github.com/yourname/taskmitra-app.git
+cd taskmitra-app
+npm install
+npx react-native run-android # or run-ios
+```
