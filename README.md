@@ -31,7 +31,7 @@ TaskMitra is a modern task collaboration app built with React Native. It support
 ## 🚀 Setup Instructions
 
 ```bash
-git clone https://github.com/yourname/taskmitra-app.git
+git clone https://github.com/KrushnaNaghate/TaskMitra.git
 cd taskmitra-app
 npm install
 npx react-native run-android # or run-ios

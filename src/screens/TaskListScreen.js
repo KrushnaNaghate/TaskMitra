@@ -9,6 +9,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {moderateScale, moderateVerticalScale} from 'react-native-size-matters';
 import OfflineRibbon from '../components/OfflineRibbon';
 import {useSnackbar} from '../components/SnackbarProvider';
+import {deviceHeight} from '../constants/variable';
 import {useTheme} from '../context/ThemeContext';
 import useNetworkStatus from '../hooks/useNetworkStatus';
 import {
@@ -140,7 +141,30 @@ const TaskListScreen = ({navigation}) => {
           data={tasks}
           keyExtractor={item => item._id}
           renderItem={renderTask}
-          contentContainerStyle={{paddingBottom: 100}}
+          contentContainerStyle={{paddingBottom: moderateVerticalScale(100)}}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Icon
+                name="assignment"
+                size={48}
+                color={currentTheme.placeholderColor}
+              />
+              <Text
+                style={[
+                  styles.emptyText,
+                  {color: currentTheme.placeholderColor},
+                ]}>
+                No tasks found.
+              </Text>
+              <Text
+                style={[
+                  styles.emptySubText,
+                  {color: currentTheme.placeholderColor},
+                ]}>
+                Start by creating your first task.
+              </Text>
+            </View>
+          )}
         />
 
         <Button
@@ -190,6 +214,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 4,
     marginRight: moderateScale(8),
+  },
+  emptyContainer: {
+    flex: 1,
+    height: deviceHeight * 0.6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: moderateVerticalScale(50),
+  },
+  emptyText: {
+    fontSize: responsiveFont(16),
+    fontWeight: '600',
+    marginTop: moderateVerticalScale(10),
+  },
+  emptySubText: {
+    fontSize: responsiveFont(12),
+    marginTop: moderateVerticalScale(4),
   },
 });
 
